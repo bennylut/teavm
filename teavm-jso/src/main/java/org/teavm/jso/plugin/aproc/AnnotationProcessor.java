@@ -15,19 +15,17 @@
  */
 package org.teavm.jso.plugin.aproc;
 
-import java.lang.annotation.Annotation;
 import java.util.List;
 import java.util.Set;
+import org.teavm.diagnostics.Diagnostics;
 import org.teavm.model.CallLocation;
 import org.teavm.model.ClassHolder;
-import org.teavm.model.ClassHolderSource;
+import org.teavm.model.ClassReaderSource;
 import org.teavm.model.FieldHolder;
 import org.teavm.model.Instruction;
 import org.teavm.model.MethodHolder;
 import org.teavm.model.Variable;
-import org.teavm.model.instructions.ConstructInstruction;
 import org.teavm.model.instructions.GetFieldInstruction;
-import org.teavm.model.instructions.InvokeInstruction;
 import org.teavm.model.instructions.PutFieldInstruction;
 
 /**
@@ -41,81 +39,67 @@ public interface AnnotationProcessor {
      * @return a set of annotation derivations which should be handled by this
      * annotation processor
      */
-    Set<Class<? extends Annotation>> supportedAnnotations();
-
-    /**
-     * initialize this annotation processor, this method is the first method
-     * that will get invoked on the annotation processor
-     *
-     * @param source
-     */
-    void initialize(ClassHolderSource source);
+    Set<String> supportedAnnotations();
 
     /**
      * executed upon the first encounter with a class definition which is
      * annotated with a supported annotation this method allows to transform the
      * class definition.
      *
-     * @param annotation
      * @param cls
+     * @param innerSource
+     * @param diagnostics
      */
-    void transformAnnotatedClass(Annotation annotation, ClassHolder cls);
+    void transformAnnotatedClass(ClassHolder cls, ClassReaderSource innerSource, Diagnostics diagnostics);
 
     /**
      * executed upon the first encounter with a method definition which is
      * annotated with a supported annotation this method allows to transform the
      * method definition.
      *
-     * @param annotation
      * @param mtd
+     * @param innerSource
+     * @param diagnostics
      */
-    void transformAnnotatedMethod(Annotation annotation, MethodHolder mtd);
+    void transformAnnotatedMethod(MethodHolder mtd, ClassReaderSource innerSource, Diagnostics diagnostics);
 
     /**
      * executed upon the first encounter with a field definition which is
      * annotated with a supported annotation this method allows to transform the
      * field definition.
      *
-     * @param annotation
      * @param field
+     * @param innerSource
+     * @param diagnostics
      */
-    void transformAnnotatedField(Annotation annotation, FieldHolder field);
+    void transformAnnotatedField(FieldHolder field, ClassReaderSource innerSource, Diagnostics diagnostics);
 
     /**
      * executed when a construct instruction of a class which annotated with a
      * supported annotation is encountered
      *
      * @param cls the annotated class being constructed
-     * @param instruction the construct instruction
-     * @param replacement a list of instructions, initially empty, if any
-     * instruction is added to this list it will substitute the original
-     * instruction
+     * @param s substitution builder for this type of instruction
      */
-    void substituteConstructorCall(ClassHolder cls, ConstructInstruction instruction, List<Instruction> replacement);
+    void substituteConstructorCall(ClassHolder cls, ConstructSubtituteBuilder s);
 
     /**
      * executed when an invocation of a method belongs to a class which
      * annotated with a supported annotation is encountered
      *
      * @param cls the annotated class which own the method being invoked
-     * @param instruction the invocation instruction
-     * @param replacement a list of instructions, initially empty, if any
-     * instruction is added to this list it will substitute the original
-     * instruction
+     * @param s substitution builder for this type of instruction
      */
-    void substituteMethodInvocation(ClassHolder cls, InvokeInstruction instruction, List<Instruction> replacement);
+    void substituteMethodInvocation(ClassHolder cls, InvokeSubtituteBuilder s);
 
     /**
      * executed when an invocation of a method which annotated with a supported
      * annotation is encountered
      *
      * @param mtd the annotated method being invoked
-     * @param instruction the invocation instruction
-     * @param replacement a list of instructions, initially empty, if any
-     * instruction is added to this list it will substitute the original
-     * instruction
+     * @param s substitution builder for this type of instruction
      */
-    void substituteMethodInvocation(MethodHolder mtd, InvokeInstruction instruction, List<Instruction> replacement);
+    void substituteMethodInvocation(MethodHolder mtd, InvokeSubtituteBuilder s);
 
     /**
      * executed when a put-operation of a field of a class which annotated with

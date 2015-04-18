@@ -32,6 +32,7 @@ import org.teavm.model.Program;
 import org.teavm.model.ValueType;
 import org.teavm.model.Variable;
 import org.teavm.model.instructions.AssignInstruction;
+import org.teavm.model.instructions.EmptyInstruction;
 import org.teavm.model.instructions.InvocationType;
 import org.teavm.model.instructions.InvokeInstruction;
 import org.teavm.model.instructions.StringConstantInstruction;
@@ -40,40 +41,44 @@ import org.teavm.model.instructions.StringConstantInstruction;
  *
  * @author bennyl
  */
-public class SubstituteBuilder {
+public class BaseSubstituteBuilder<I extends Instruction, T extends SubtituteBuilder> implements SubtituteBuilder<T> {
 
     private StringBuilder expression = new StringBuilder();
-    private ObjectIntMap<VariableWithType> variables = new ObjectIntOpenHashMap<>();
-    private List<Instruction> replacement;
-    private Program program;
-    private Instruction originalInstruction;
-    private WrapUnwrapService wuservice;
-    private ClassHolderSource classSource;
-    private MethodHolder methodToProcess;
+    private ObjectIntMap<VarInfo> variables = new ObjectIntOpenHashMap<>();
+    private VarInfo receiver;
 
-    public SubstituteBuilder(WrapUnwrapService wuservice, MethodHolder processedMethod, ClassHolderSource classSource, Instruction originalInstruction, List<Instruction> replacement) {
+    protected List<Instruction> replacement;
+    protected Program program;
+    protected I instruction;
+    protected WrapUnwrapService wuservice;
+    protected ClassHolderSource classSource;
+    protected MethodHolder processedMethod;
+
+    public BaseSubstituteBuilder(WrapUnwrapService wuservice, MethodHolder processedMethod, ClassHolderSource classSource, I originalInstruction, List<Instruction> replacement) {
         this.replacement = replacement;
         this.program = processedMethod.getProgram();
-        this.originalInstruction = originalInstruction;
+        this.instruction = originalInstruction;
         this.wuservice = wuservice;
         this.classSource = classSource;
-        this.methodToProcess = processedMethod;
+        this.processedMethod = processedMethod;
     }
 
-    public SubstituteBuilder append(String... constant) {
+    public I getInstruction() {
+        return instruction;
+    }
+
+    @Override
+    public T append(String... constant) {
         for (String c : constant) {
             appendEscaped(c);
         }
 
-        return this;
+        return (T) this;
     }
 
-    public SubstituteBuilder appendArgOf(InvokeInstruction i, int argIdx) {
-        return append(i.getArguments().get(argIdx), i.getMethod().getParameterTypes()[argIdx]);
-    }
-
-    public SubstituteBuilder append(Variable v, ValueType type) {
-        VariableWithType vt = new VariableWithType(v, type);
+    @Override
+    public T append(Variable v, ValueType type, WrapMode wrap) {
+        VarInfo vt = new VarInfo(v, type, wrap);
         int index = variables.getOrDefault(vt, -1);
         if (index < 0) {
             index = variables.size();
@@ -81,7 +86,25 @@ public class SubstituteBuilder {
         }
 
         expression.append("$").append(index).append(" ");
-        return this;
+        return (T) this;
+    }
+
+    public T appendWrappped(Variable v, ValueType type) {
+        return append(v, type, WrapMode.WRAP);
+    }
+
+    public T appendUnwrapped(Variable v, ValueType type) {
+        return append(v, type, WrapMode.UNWRAP);
+    }
+
+    public T append(Variable v, ValueType type) {
+        return append(v, type, WrapMode.DO_NOTHING);
+    }
+
+    @Override
+    public T assignReceiver(Variable receiver, ValueType type, WrapMode wrap) {
+        this.receiver = new VarInfo(receiver, type, wrap);
+        return (T) this;
     }
 
     private void appendEscaped(String str) {
@@ -99,7 +122,8 @@ public class SubstituteBuilder {
         }
     }
 
-    public void createSubstitution(Variable receiver, ValueType type) {
+    @Override
+    public void substitute() {
         Variable result = receiver != null ? program.createVariable() : null;
         InvokeInstruction newInvoke = new InvokeInstruction();
         ValueType[] signature = new ValueType[variables.size() + 2];
@@ -108,26 +132,53 @@ public class SubstituteBuilder {
         newInvoke.setMethod(new MethodReference(Substituter.class.getName(), "substitute", signature));
         newInvoke.setType(InvocationType.SPECIAL);
         newInvoke.setReceiver(result);
-        newInvoke.getArguments().add(addStringWrap(addString(expression.toString(), originalInstruction.getLocation()),
-                originalInstruction.getLocation()));
+        newInvoke.getArguments().add(addStringWrap(addString(expression.toString(), instruction.getLocation()),
+                instruction.getLocation()));
 
-        newInvoke.setLocation(originalInstruction.getLocation());
-        CallLocation callLocation = new CallLocation(methodToProcess.getReference(), originalInstruction.getLocation());
+        newInvoke.setLocation(instruction.getLocation());
+        CallLocation callLocation = new CallLocation(processedMethod.getReference(), instruction.getLocation());
 
-        VariableWithType[] arguments = new VariableWithType[variables.size()];
-        for (ObjectIntCursor<VariableWithType> v : variables) {
+        VarInfo[] arguments = new VarInfo[variables.size()];
+        for (ObjectIntCursor<VarInfo> v : variables) {
             arguments[v.value] = v.key;
         }
 
         for (int k = 0; k < arguments.length; ++k) {
-            Variable arg = wuservice.wrap(arguments[k].var, arguments[k].type, callLocation.getSourceLocation());
+            Variable arg;
+            switch (arguments[k].wrap) {
+                case WRAP:
+                    arg = wuservice.wrap(arguments[k].var, arguments[k].type, callLocation.getSourceLocation());
+                    break;
+                case UNWRAP:
+                    arg = wuservice.unwrap(callLocation, arguments[k].var, arguments[k].type);
+                    break;
+                case DO_NOTHING:
+                    arg = arguments[k].var;
+                    break;
+                default:
+                    throw new AssertionError(arguments[k].wrap.name());
+                
+            }
             newInvoke.getArguments().add(arg);
         }
 
         replacement.add(newInvoke);
         if (result != null) {
-            result = wuservice.unwrap(callLocation, result, type);
-            addAssignmentInstruction(result, receiver, originalInstruction.getLocation());
+            switch (receiver.wrap) {
+                case WRAP:
+                    result = wuservice.wrap(result, receiver.type, callLocation.getSourceLocation());
+                    break;
+                case UNWRAP:
+                    result = wuservice.unwrap(callLocation, result, receiver.type);
+                    break;
+                case DO_NOTHING:
+                    break;
+                default:
+                    throw new AssertionError(receiver.wrap.name());
+                
+            }
+            
+            addAssignmentInstruction(result, receiver.var, instruction.getLocation());
         }
     }
 
@@ -145,27 +196,36 @@ public class SubstituteBuilder {
         return wuservice.wrap(var, ValueType.object("java.lang.String"), location);
     }
 
-    private static final class VariableWithType {
+    @Override
+    public void substituteWithEmptyInstruction() {
+        replacement.clear();
+        replacement.add(new EmptyInstruction());
+    }
+
+    private static final class VarInfo {
 
         Variable var;
         ValueType type;
+        WrapMode wrap;
 
-        public VariableWithType(Variable var, ValueType type) {
+        public VarInfo(Variable var, ValueType type, WrapMode wrap) {
             this.var = var;
             this.type = type;
+            this.wrap = wrap;
         }
 
         @Override
         public int hashCode() {
             int hash = 7;
-            hash = 59 * hash + Objects.hashCode(this.var);
+            hash = 79 * hash + Objects.hashCode(this.var);
+            hash = 79 * hash + Objects.hashCode(this.wrap);
             return hash;
         }
 
         @Override
         public boolean equals(Object obj) {
-            final VariableWithType other = (VariableWithType) obj;
-            return this.var == other.var;
+            final VarInfo other = (VarInfo) obj;
+            return this.var == other.var && this.wrap == other.wrap;
         }
 
     }
