@@ -15,8 +15,10 @@
  */
 package org.teavm.jso.plugin;
 
+import java.util.EnumSet;
 import org.teavm.diagnostics.Diagnostics;
 import org.teavm.jso.JSBody;
+import org.teavm.jso.JSNative;
 import org.teavm.model.*;
 
 /**
@@ -39,7 +41,25 @@ public class JSObjectClassTransformer implements ClassHolderTransformer {
         if (processor.isNativeImplementation(cls.getName())) {
             processor.makeSync(cls);
         }
+        
+        boolean hasNativeAnnotation = cls.getAnnotations().get(JSNative.class.getCanonicalName()) != null;
+        
         for (MethodHolder method : cls.getMethods().toArray(new MethodHolder[0])) {
+            if (hasNativeAnnotation) {
+                EnumSet<ElementModifier> modifiers = method.getModifiers();
+                if (modifiers.contains(ElementModifier.NATIVE)) {
+                    method.getModifiers().remove(ElementModifier.NATIVE);
+                    method.getModifiers().add(ElementModifier.ABSTRACT);
+                }else if (!modifiers.contains(ElementModifier.FINAL) && 
+                        !modifiers.contains(ElementModifier.STATIC) &&
+                        !method.getName().equals("<init>")) {
+                    CallLocation callLocation = new CallLocation(method.getReference());
+                    diagnostics.error(callLocation, "Method {{m0}} is not a proper native JavaScript method " +
+                                "declaration (must be native, final or constructor)", method.getReference());
+                    continue;
+                }
+            }
+            
             if (method.getAnnotations().get(JSBody.class.getName()) != null) {
                 processor.processJSBody(cls, method);
             } else if (method.getProgram() != null &&

@@ -17,6 +17,7 @@ package org.teavm.jso.plugin;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.teavm.jso.JSNative;
 import org.teavm.jso.JSObject;
 import org.teavm.model.ClassReader;
 import org.teavm.model.ClassReaderSource;
@@ -56,6 +57,11 @@ class NativeJavascriptClassRepository {
 
     private boolean examineIfJavaScriptClass(String className) {
         ClassReader cls = classSource.get(className);
+        
+        if (cls != null && cls.getAnnotations().get(JSNative.class.getCanonicalName()) != null) {
+            return true;
+        }
+        
         if (cls == null || !(cls.hasModifier(ElementModifier.INTERFACE) || cls.hasModifier(ElementModifier.ABSTRACT))) {
             return false;
         }

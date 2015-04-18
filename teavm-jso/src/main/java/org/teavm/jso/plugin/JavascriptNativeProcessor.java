@@ -181,6 +181,13 @@ class JavascriptNativeProcessor {
             List<Instruction> instructions = block.getInstructions();
             for (int j = 0; j < instructions.size(); ++j) {
                 Instruction insn = instructions.get(j);
+                if (insn instanceof ConstructInstruction) {
+                    if (isNative(((ConstructInstruction)insn).getType())) {
+                        instructions.set(i, new EmptyInstruction());
+                        continue;
+                    }
+                }
+                
                 if (!(insn instanceof InvokeInstruction)) {
                     continue;
                 }
@@ -260,7 +267,13 @@ class JavascriptNativeProcessor {
                     String name = method.getName();
                     AnnotationReader constructorAnnot = method.getAnnotations().get(JSConstructor.class.getName());
                     boolean isConstructor = false;
-                    if (constructorAnnot != null) {
+                    if (name.equals("<init>")){ 
+                        isConstructor = true;
+                        ClassReader cls = classSource.get(invoke.getMethod().getClassName());
+                        name += cls.getAnnotations().get(JSNative.class.getCanonicalName())
+                                .getValue("value").getString();
+                        
+                    }else if (constructorAnnot != null) {
                         if (!isSupportedType(method.getResultType())) {
                             diagnostics.error(callLocation, "Method {{m0}} is not a proper native JavaScript " +
                                     "constructor declaration", invoke.getMethod());
