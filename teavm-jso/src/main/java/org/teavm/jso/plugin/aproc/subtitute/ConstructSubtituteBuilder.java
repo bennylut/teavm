@@ -13,22 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.teavm.jso.plugin.aproc;
+package org.teavm.jso.plugin.aproc.subtitute;
 
-import java.util.List;
-import org.teavm.model.ClassHolderSource;
-import org.teavm.model.Instruction;
-import org.teavm.model.MethodHolder;
 import org.teavm.model.instructions.ConstructInstruction;
 
 /**
  *
  * @author bennyl
  */
-public class ConstructSubtituteBuilder extends BaseSubstituteBuilder<ConstructInstruction, ConstructSubtituteBuilder>{
+public class ConstructSubtituteBuilder extends DelegatingSubtituteBuilder<ConstructInstruction, ConstructSubtituteBuilder> {
 
-    public ConstructSubtituteBuilder(WrapUnwrapService wuservice, MethodHolder processedMethod, ClassHolderSource classSource, ConstructInstruction originalInstruction, List<Instruction> replacement) {
-        super(wuservice, processedMethod, classSource, originalInstruction, replacement);
+    public ConstructSubtituteBuilder(SubtituteBuilder s) {
+        super(s);
     }
-    
+
 }

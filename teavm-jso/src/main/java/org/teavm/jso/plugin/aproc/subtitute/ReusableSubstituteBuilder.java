@@ -13,15 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.teavm.jso.plugin.aproc;
+package org.teavm.jso.plugin.aproc.subtitute;
 
 import com.carrotsearch.hppc.ObjectIntMap;
 import com.carrotsearch.hppc.ObjectIntOpenHashMap;
 import com.carrotsearch.hppc.cursors.ObjectIntCursor;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.teavm.diagnostics.Diagnostics;
 import org.teavm.jso.JSObject;
+import org.teavm.jso.plugin.wrp.UnwrapBuilder;
+import org.teavm.jso.plugin.wrp.WrapBuilder;
+import org.teavm.jso.plugin.wrp.WrapUnwrapDriver;
+import org.teavm.jso.plugin.wrp.WrapUnwrapService;
 import org.teavm.model.CallLocation;
 import org.teavm.model.ClassHolderSource;
 import org.teavm.model.Instruction;
@@ -41,30 +49,43 @@ import org.teavm.model.instructions.StringConstantInstruction;
  *
  * @author bennyl
  */
-public class BaseSubstituteBuilder<I extends Instruction, T extends SubtituteBuilder> implements SubtituteBuilder<T> {
+public class ReusableSubstituteBuilder<T extends SubtituteBuilder<T>> implements SubtituteBuilder<T> {
 
     private StringBuilder expression = new StringBuilder();
     private ObjectIntMap<VarInfo> variables = new ObjectIntOpenHashMap<>();
     private VarInfo receiver;
 
-    protected List<Instruction> replacement;
-    protected Program program;
-    protected I instruction;
-    protected WrapUnwrapService wuservice;
-    protected ClassHolderSource classSource;
-    protected MethodHolder processedMethod;
+    private List<Instruction> replacement;
+    private Program program;
+    private Instruction instruction;
+    private WrapUnwrapDriver wuDriver;
+    private ClassHolderSource classSource;
+    private MethodHolder processedMethod;
+    private Diagnostics diagnostics;
 
-    public BaseSubstituteBuilder(WrapUnwrapService wuservice, MethodHolder processedMethod, ClassHolderSource classSource, I originalInstruction, List<Instruction> replacement) {
-        this.replacement = replacement;
+    public ReusableSubstituteBuilder(WrapUnwrapDriver wuDriver, MethodHolder processedMethod, ClassHolderSource classSource, Diagnostics diagnostics) {
+        this.replacement = new ArrayList<>();
         this.program = processedMethod.getProgram();
-        this.instruction = originalInstruction;
-        this.wuservice = wuservice;
+        this.instruction = null;
+        this.wuDriver = wuDriver;
         this.classSource = classSource;
         this.processedMethod = processedMethod;
+        this.diagnostics = diagnostics;
     }
 
-    public I getInstruction() {
+    @Override
+    public Instruction getInstruction() {
         return instruction;
+    }
+
+    public List<Instruction> getSubstitution() {
+        return replacement;
+    }
+
+    public void reset(Instruction instruction) {
+        this.instruction = instruction;
+
+        replacement.clear();
     }
 
     @Override
@@ -89,14 +110,17 @@ public class BaseSubstituteBuilder<I extends Instruction, T extends SubtituteBui
         return (T) this;
     }
 
+    @Override
     public T appendWrappped(Variable v, ValueType type) {
         return append(v, type, WrapMode.WRAP);
     }
 
+    @Override
     public T appendUnwrapped(Variable v, ValueType type) {
         return append(v, type, WrapMode.UNWRAP);
     }
 
+    @Override
     public T append(Variable v, ValueType type) {
         return append(v, type, WrapMode.DO_NOTHING);
     }
@@ -126,17 +150,16 @@ public class BaseSubstituteBuilder<I extends Instruction, T extends SubtituteBui
     public void substitute() {
         Variable result = receiver != null ? program.createVariable() : null;
         InvokeInstruction newInvoke = new InvokeInstruction();
+        CallLocation callLocation = new CallLocation(processedMethod.getReference(), instruction.getLocation());
+        
         ValueType[] signature = new ValueType[variables.size() + 2];
         Arrays.fill(signature, ValueType.object(JSObject.class.getName()));
 
         newInvoke.setMethod(new MethodReference(Substituter.class.getName(), "substitute", signature));
         newInvoke.setType(InvocationType.SPECIAL);
         newInvoke.setReceiver(result);
-        newInvoke.getArguments().add(addStringWrap(addString(expression.toString(), instruction.getLocation()),
-                instruction.getLocation()));
-
+        newInvoke.getArguments().add(addStringWrap(addString(expression.toString(), instruction.getLocation()),callLocation));
         newInvoke.setLocation(instruction.getLocation());
-        CallLocation callLocation = new CallLocation(processedMethod.getReference(), instruction.getLocation());
 
         VarInfo[] arguments = new VarInfo[variables.size()];
         for (ObjectIntCursor<VarInfo> v : variables) {
@@ -144,41 +167,52 @@ public class BaseSubstituteBuilder<I extends Instruction, T extends SubtituteBui
         }
 
         for (int k = 0; k < arguments.length; ++k) {
-            Variable arg;
-            switch (arguments[k].wrap) {
-                case WRAP:
-                    arg = wuservice.wrap(arguments[k].var, arguments[k].type, callLocation.getSourceLocation());
-                    break;
-                case UNWRAP:
-                    arg = wuservice.unwrap(callLocation, arguments[k].var, arguments[k].type);
-                    break;
-                case DO_NOTHING:
-                    arg = arguments[k].var;
-                    break;
-                default:
-                    throw new AssertionError(arguments[k].wrap.name());
-                
+            try {
+                Variable arg;
+                switch (arguments[k].wrap) {
+                    case WRAP:
+                        arg = program.createVariable();
+                        wuDriver.wrap(arguments[k].var, arg, arguments[k].type, replacement);
+                        break;
+                    case UNWRAP:
+                        arg = program.createVariable();
+                        wuDriver.unwrap(arguments[k].var, arg, arguments[k].type, replacement);
+                        break;
+                    case DO_NOTHING:
+                        arg = arguments[k].var;
+                        break;
+                    default:
+                        throw new AssertionError(arguments[k].wrap.name());
+
+                }
+                newInvoke.getArguments().add(arg);
+            } catch (Exception ex) {
+                diagnostics.error(callLocation, "error while attempting to {{1}}  object: {{2}}", arguments[k].wrap.name(), ex.getMessage());
             }
-            newInvoke.getArguments().add(arg);
         }
 
         replacement.add(newInvoke);
         if (result != null) {
-            switch (receiver.wrap) {
-                case WRAP:
-                    result = wuservice.wrap(result, receiver.type, callLocation.getSourceLocation());
-                    break;
-                case UNWRAP:
-                    result = wuservice.unwrap(callLocation, result, receiver.type);
-                    break;
-                case DO_NOTHING:
-                    break;
-                default:
-                    throw new AssertionError(receiver.wrap.name());
-                
+            try {
+                Variable temp = program.createVariable();
+                switch (receiver.wrap) {
+                    case WRAP:
+                        wuDriver.wrap(result, temp, receiver.type, replacement);
+                        result = temp;
+                        break;
+                    case UNWRAP:
+                        wuDriver.unwrap(result, temp, receiver.type, replacement);
+                        result = temp;
+                        break;
+                    case DO_NOTHING:
+                        break;
+
+                }
+
+                addAssignmentInstruction(result, receiver.var, instruction.getLocation());
+            } catch (Exception ex) {
+                diagnostics.error(callLocation, "error while attempting to {{1}}  object: {{2}}", receiver.wrap.name(), ex.getMessage());
             }
-            
-            addAssignmentInstruction(result, receiver.var, instruction.getLocation());
         }
     }
 
@@ -192,8 +226,15 @@ public class BaseSubstituteBuilder<I extends Instruction, T extends SubtituteBui
         return var;
     }
 
-    private Variable addStringWrap(Variable var, InstructionLocation location) {
-        return wuservice.wrap(var, ValueType.object("java.lang.String"), location);
+    private Variable addStringWrap(Variable var, CallLocation location) {
+        try {
+            Variable v = program.createVariable();
+            wuDriver.wrap(var, v, ValueType.object("java.lang.String"), replacement);
+            return v;
+        } catch (Exception ex) {
+            diagnostics.error(location, "error while attempting to wrap string constant: {{1}}", ex.getMessage());
+            return null;
+        }
     }
 
     @Override

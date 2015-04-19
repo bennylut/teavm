@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.teavm.jso.plugin.aproc;
+package org.teavm.jso.plugin.aproc.subtitute;
 
 import java.util.List;
+import org.teavm.jso.plugin.wrp.WrapUnwrapService;
 import org.teavm.model.ClassHolderSource;
 import org.teavm.model.Instruction;
 import org.teavm.model.MethodHolder;
@@ -27,32 +28,32 @@ import org.teavm.model.instructions.InvokeInstruction;
  *
  * @author bennyl
  */
-public class InvokeSubtituteBuilder extends BaseSubstituteBuilder<InvokeInstruction, InvokeSubtituteBuilder> {
+public class InvokeSubtituteBuilder extends DelegatingSubtituteBuilder<InvokeInstruction, InvokeSubtituteBuilder> {
 
-    public InvokeSubtituteBuilder(WrapUnwrapService wuservice, MethodHolder processedMethod, ClassHolderSource classSource, InvokeInstruction instruction, List<Instruction> replacement) {
-        super(wuservice, processedMethod, classSource, instruction, replacement);
-        assignReceiver(instruction.getReceiver(), instruction.getMethod().getReturnType(), WrapMode.UNWRAP);
+    public InvokeSubtituteBuilder(SubtituteBuilder s) {
+        super(s);
+        assignReceiver(getInstruction().getReceiver(), getInstruction().getMethod().getReturnType(), WrapMode.UNWRAP);
     }
 
     public InvokeSubtituteBuilder appendArgWrapped(int index) {
-        return append(instruction.getArguments().get(index), instruction.getMethod().getParameterTypes()[index], WrapMode.WRAP);
+        return append(getInstruction().getArguments().get(index), getInstruction().getMethod().getParameterTypes()[index], WrapMode.WRAP);
     }
-    
+
     public InvokeSubtituteBuilder appendArgListWrapped() {
         append("(");
-        final int numArgs = instruction.getArguments().size();
-        for (int i=0; i<numArgs; i++) {
+        final int numArgs = getInstruction().getArguments().size();
+        for (int i = 0; i < numArgs; i++) {
             appendArgWrapped(i);
-            if (i+1 < numArgs) {
+            if (i + 1 < numArgs) {
                 append(", ");
             }
         }
         append(")");
         return this;
     }
-    
+
     public InvokeSubtituteBuilder appendInstance() {
-        return append(instruction.getInstance(), ValueType.object(instruction.getMethod().getClassName()));
+        return append(getInstruction().getInstance(), ValueType.object(getInstruction().getMethod().getClassName()));
     }
-    
+
 }

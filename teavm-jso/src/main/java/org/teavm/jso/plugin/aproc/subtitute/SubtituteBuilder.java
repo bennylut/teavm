@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.teavm.jso.plugin.aproc;
+package org.teavm.jso.plugin.aproc.subtitute;
 
+import org.teavm.model.Instruction;
 import org.teavm.model.ValueType;
 import org.teavm.model.Variable;
 import org.teavm.model.instructions.EmptyInstruction;
@@ -23,13 +24,21 @@ import org.teavm.model.instructions.EmptyInstruction;
  *
  * @author bennyl
  */
-public interface SubtituteBuilder<T extends SubtituteBuilder> {
+public interface SubtituteBuilder<T extends SubtituteBuilder<T>> {
 
     T append(String... constant);
     
     T append(Variable v, ValueType type, WrapMode wrapMode);
 
     T assignReceiver(Variable receiver, ValueType type, WrapMode wrap);
+    
+    T appendWrappped(Variable v, ValueType type);
+
+    T appendUnwrapped(Variable v, ValueType type) ;
+
+    T append(Variable v, ValueType type);
+    
+    Instruction getInstruction();
     
     void substitute();
 

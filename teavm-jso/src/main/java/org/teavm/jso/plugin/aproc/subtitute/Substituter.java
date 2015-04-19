@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.teavm.jso.plugin.aproc;
+package org.teavm.jso.plugin.aproc.subtitute;
 
 import java.io.IOException;
 import org.teavm.codegen.SourceWriter;

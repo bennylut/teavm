@@ -18,6 +18,7 @@ package org.teavm.jso.plugin.aproc;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
+import org.teavm.model.AnnotationHolder;
 import org.teavm.model.ClassHolder;
 
 /**
@@ -43,7 +44,10 @@ public class AnnotationProcessorsDriver {
     }
     
     public void applyTransformations(ClassHolder cls) {
-        
+        //TODO: should validate 
+        for (AnnotationHolder a : cls.getAnnotations().all()) {
+            
+        }
     }
     
     public void enterProgram() {

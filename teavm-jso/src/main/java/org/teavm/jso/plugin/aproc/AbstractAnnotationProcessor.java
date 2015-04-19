@@ -15,8 +15,12 @@
  */
 package org.teavm.jso.plugin.aproc;
 
+import org.teavm.jso.plugin.aproc.subtitute.ConstructSubtituteBuilder;
+import org.teavm.jso.plugin.aproc.subtitute.InvokeSubtituteBuilder;
 import java.util.List;
 import org.teavm.diagnostics.Diagnostics;
+import org.teavm.jso.plugin.aproc.subtitute.FieldGetSubtituteBuilder;
+import org.teavm.jso.plugin.aproc.subtitute.FieldPutSubtituteBuilder;
 import org.teavm.model.CallLocation;
 import org.teavm.model.ClassHolder;
 import org.teavm.model.ClassReaderSource;
@@ -24,8 +28,6 @@ import org.teavm.model.FieldHolder;
 import org.teavm.model.Instruction;
 import org.teavm.model.MethodHolder;
 import org.teavm.model.Variable;
-import org.teavm.model.instructions.GetFieldInstruction;
-import org.teavm.model.instructions.PutFieldInstruction;
 
 /**
  *
@@ -57,21 +59,6 @@ public abstract class AbstractAnnotationProcessor implements AnnotationProcessor
     public void substituteMethodInvocation(MethodHolder mtd, InvokeSubtituteBuilder s) {
     }
 
-    @Override
-    public void substituteFieldPut(ClassHolder cls, PutFieldInstruction instruction, List<Instruction> replacement) {
-    }
-
-    @Override
-    public void substituteFieldGet(ClassHolder cls, GetFieldInstruction instruction, List<Instruction> replacement) {
-    }
-
-    @Override
-    public void substituteFieldPut(FieldHolder field, PutFieldInstruction instruction, List<Instruction> replacement) {
-    }
-
-    @Override
-    public void substituteFieldGet(FieldHolder field, GetFieldInstruction instruction, List<Instruction> replacement) {
-    }
 
     @Override
     public void wrap(ClassHolder cls, Variable source, Variable target, List<Instruction> wrappingInstructions) {
@@ -79,6 +66,22 @@ public abstract class AbstractAnnotationProcessor implements AnnotationProcessor
 
     @Override
     public void unwrap(ClassHolder cls, CallLocation location, Variable source, Variable target, List<Instruction> unwrappingInstructions) {
+    }
+
+    @Override
+    public void substituteFieldGet(ClassHolder cls, FieldGetSubtituteBuilder s) {
+    }
+
+    @Override
+    public void substituteFieldGet(FieldHolder field, FieldGetSubtituteBuilder s) {
+    }
+
+    @Override
+    public void substituteFieldPut(ClassHolder cls, FieldPutSubtituteBuilder s) {
+    }
+
+    @Override
+    public void substituteFieldPut(FieldHolder field, FieldPutSubtituteBuilder s) {
     }
 
 }

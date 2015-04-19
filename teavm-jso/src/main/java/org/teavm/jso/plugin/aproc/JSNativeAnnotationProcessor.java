@@ -15,12 +15,15 @@
  */
 package org.teavm.jso.plugin.aproc;
 
+import org.teavm.jso.plugin.aproc.subtitute.ConstructSubtituteBuilder;
+import org.teavm.jso.plugin.aproc.subtitute.InvokeSubtituteBuilder;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Set;
 import org.teavm.diagnostics.Diagnostics;
 import org.teavm.jso.JSNative;
+import org.teavm.jso.plugin.aproc.subtitute.FieldGetSubtituteBuilder;
+import org.teavm.jso.plugin.aproc.subtitute.FieldPutSubtituteBuilder;
 import org.teavm.model.CallLocation;
 import org.teavm.model.ClassHolder;
 import org.teavm.model.ClassReaderSource;
@@ -34,8 +37,8 @@ import org.teavm.model.MethodHolder;
 public class JSNativeAnnotationProcessor extends AbstractAnnotationProcessor {
 
     @Override
-    public Set<String> supportedAnnotations() {
-        return new HashSet<>(Arrays.asList(JSNative.class.getCanonicalName()));
+    public Collection<String> supportedAnnotations() {
+        return Arrays.asList(JSNative.class.getCanonicalName());
     }
 
     @Override
@@ -53,6 +56,16 @@ public class JSNativeAnnotationProcessor extends AbstractAnnotationProcessor {
     }
 
     @Override
+    public void substituteFieldGet(ClassHolder cls, FieldGetSubtituteBuilder s) {
+        s.appendInstance().append(".").append(s.getFieldName()).substitute();
+    }
+
+    @Override
+    public void substituteFieldPut(ClassHolder cls, FieldPutSubtituteBuilder s) {
+        s.appendInstance().append(".").append(s.getFieldName(), " = ").appendValueWrapped().substitute();
+    }
+
+    @Override
     public void transformAnnotatedClass(ClassHolder cls, ClassReaderSource innerSource, Diagnostics diagnostics) {
         for (MethodHolder method : cls.getMethods()) {
             EnumSet<ElementModifier> modifiers = method.getModifiers();
@@ -65,7 +78,6 @@ public class JSNativeAnnotationProcessor extends AbstractAnnotationProcessor {
                 CallLocation callLocation = new CallLocation(method.getReference());
                 diagnostics.error(callLocation, "Method {{m0}} is not a proper native JavaScript method "
                         + "declaration (must be native, final or constructor)", method.getReference());
-                continue;
             }
         }
     }

@@ -15,9 +15,13 @@
  */
 package org.teavm.jso.plugin.aproc;
 
+import java.util.Collection;
+import org.teavm.jso.plugin.aproc.subtitute.ConstructSubtituteBuilder;
+import org.teavm.jso.plugin.aproc.subtitute.InvokeSubtituteBuilder;
 import java.util.List;
-import java.util.Set;
 import org.teavm.diagnostics.Diagnostics;
+import org.teavm.jso.plugin.aproc.subtitute.FieldGetSubtituteBuilder;
+import org.teavm.jso.plugin.aproc.subtitute.FieldPutSubtituteBuilder;
 import org.teavm.model.CallLocation;
 import org.teavm.model.ClassHolder;
 import org.teavm.model.ClassReaderSource;
@@ -25,8 +29,6 @@ import org.teavm.model.FieldHolder;
 import org.teavm.model.Instruction;
 import org.teavm.model.MethodHolder;
 import org.teavm.model.Variable;
-import org.teavm.model.instructions.GetFieldInstruction;
-import org.teavm.model.instructions.PutFieldInstruction;
 
 /**
  *
@@ -39,7 +41,7 @@ public interface AnnotationProcessor {
      * @return a set of annotation derivations which should be handled by this
      * annotation processor
      */
-    Set<String> supportedAnnotations();
+    Collection<String> supportedAnnotations();
 
     /**
      * executed upon the first encounter with a class definition which is
@@ -106,48 +108,36 @@ public interface AnnotationProcessor {
      * a supported annotation is encountered
      *
      * @param cls the annotated class which its field is being put into
-     * @param instruction the put instruction
-     * @param replacement a list of instructions, initially empty, if any
-     * instruction is added to this list it will substitute the original
-     * instruction
+     * @param s substitution builder for this type of instruction
      */
-    void substituteFieldPut(ClassHolder cls, PutFieldInstruction instruction, List<Instruction> replacement);
+    void substituteFieldPut(ClassHolder cls, FieldPutSubtituteBuilder s);
 
     /**
      * executed when a get-operation of a field of a class which annotated with
      * a supported annotation is encountered
      *
      * @param cls the annotated class which its field is being read from
-     * @param instruction the get instruction
-     * @param replacement a list of instructions, initially empty, if any
-     * instruction is added to this list it will substitute the original
-     * instruction
+     * @param s substitution builder for this type of instruction
      */
-    void substituteFieldGet(ClassHolder cls, GetFieldInstruction instruction, List<Instruction> replacement);
+    void substituteFieldGet(ClassHolder cls, FieldGetSubtituteBuilder s);
 
     /**
      * executed when a put-operation of a field which annotated with a supported
      * annotation is encountered
      *
      * @param field the annotated field being put into
-     * @param instruction the put instruction
-     * @param replacement a list of instructions, initially empty, if any
-     * instruction is added to this list it will substitute the original
-     * instruction
+     * @param s substitution builder for this type of instruction
      */
-    void substituteFieldPut(FieldHolder field, PutFieldInstruction instruction, List<Instruction> replacement);
+    void substituteFieldPut(FieldHolder field, FieldPutSubtituteBuilder s);
 
     /**
      * executed when a get-operation of a field which annotated with a supported
      * annotation is encountered
      *
      * @param field the annotated field being read from
-     * @param instruction the get instruction
-     * @param replacement a list of instructions, initially empty, if any
-     * instruction is added to this list it will substitute the original
-     * instruction
+     * @param s substitution builder for this type of instruction
      */
-    void substituteFieldGet(FieldHolder field, GetFieldInstruction instruction, List<Instruction> replacement);
+    void substituteFieldGet(FieldHolder field, FieldGetSubtituteBuilder s);
 
     /**
      * wrap (i.e., transform to native javascript representation) a variable of

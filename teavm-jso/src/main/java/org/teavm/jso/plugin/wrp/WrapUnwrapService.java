@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.teavm.jso.plugin.aproc;
+package org.teavm.jso.plugin.wrp;
 
-import org.teavm.model.CallLocation;
-import org.teavm.model.InstructionLocation;
+import java.util.Collection;
+import org.teavm.codegen.SourceWriter;
+import org.teavm.model.AnnotationReader;
 import org.teavm.model.ValueType;
 import org.teavm.model.Variable;
 
@@ -25,8 +26,14 @@ import org.teavm.model.Variable;
  * @author bennyl
  */
 public interface WrapUnwrapService {
+    
+    Collection<String> supportedAnnotations();
+    
+    Collection<ValueType> supportedTypes();
+    
+    void renderHelperJavascriptCode(SourceWriter writer);
+    
+    void unwrap(Variable toUnwrap, ValueType type, AnnotationReader typeAnnotations, UnwrapBuilder ub);
 
-    Variable unwrap(CallLocation location, Variable var, ValueType type);
-
-    Variable wrap(Variable var, ValueType type, InstructionLocation location);
+    void wrap(Variable toWrap, ValueType type, AnnotationReader typeAnnotations, WrapBuilder wb);
 }
