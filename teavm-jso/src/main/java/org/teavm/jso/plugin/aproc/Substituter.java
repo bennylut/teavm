@@ -133,6 +133,7 @@ public class Substituter implements Injector {
             
             nextIndex = pattern.indexOf("$", startIndex);
         }
+        writer.append(pattern, startIndex, pattern.length());
     }
 
 }
