@@ -13,12 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.teavm.jso.plugin.wrp;
+package org.teavm.jso.plugin.jsc;
+
+import java.util.List;
+import org.teavm.model.Instruction;
+import org.teavm.model.ValueType;
+import org.teavm.model.Variable;
 
 /**
  *
  * @author bennyl
  */
-public class WrapBuilder {
+public class JsConversionDriver {
+
+    
+    
+    public void loadRegisteredServices() {
+        
+    }
+    
+    public void toJs(Variable source, Variable target, ValueType type, List<Instruction> requiredInstructions) throws Exception {
+
+    }
+
+    public void toJava(Variable source, Variable target, ValueType type, List<Instruction> requiredInstructions) throws Exception {
+
+    }
     
 }

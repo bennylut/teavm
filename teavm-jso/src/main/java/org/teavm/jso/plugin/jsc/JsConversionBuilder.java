@@ -13,10 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.teavm.jso.plugin.wrp;
+package org.teavm.jso.plugin.jsc;
 
-import java.util.List;
-import org.teavm.model.Instruction;
+import org.teavm.jso.plugin.util.SubstituteBuilder;
 import org.teavm.model.ValueType;
 import org.teavm.model.Variable;
 
@@ -24,20 +23,22 @@ import org.teavm.model.Variable;
  *
  * @author bennyl
  */
-public class WrapUnwrapDriver {
+public class JsConversionBuilder {
 
-    
-    
-    public void loadRegisteredServices() {
-        
-    }
-    
-    public void wrap(Variable source, Variable target, ValueType type, List<Instruction> requiredInstructions) throws Exception {
+    private SubstituteBuilder builder;
 
+    public JsConversionBuilder(SubstituteBuilder builder) {
+        this.builder = builder;
     }
 
-    public void unwrap(Variable source, Variable target, ValueType type, List<Instruction> requiredInstructions) throws Exception {
-
+    public JsConversionBuilder append(String... constant) {
+        builder.append(constant);
+        return this;
     }
-    
+
+    public JsConversionBuilder append(Variable v) {
+        builder.append(v);
+        return this;
+    }
+
 }

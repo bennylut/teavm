@@ -13,37 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.teavm.jso.plugin.aproc.subtitute;
+package org.teavm.jso.plugin.aproc;
 
-import java.util.List;
-import org.teavm.jso.plugin.wrp.WrapUnwrapService;
-import org.teavm.model.ClassHolderSource;
-import org.teavm.model.Instruction;
-import org.teavm.model.MethodHolder;
-import org.teavm.model.ValueType;
-import org.teavm.model.Variable;
+import org.teavm.jso.plugin.util.DelegatingSubstituteBuilder;
+import org.teavm.jso.plugin.util.SubstituteBuilder;
+import org.teavm.jso.plugin.jsc.ConversionMode;
 import org.teavm.model.instructions.InvokeInstruction;
 
 /**
  *
  * @author bennyl
  */
-public class InvokeSubtituteBuilder extends DelegatingSubtituteBuilder<InvokeInstruction, InvokeSubtituteBuilder> {
+public class InvokeSubtituteBuilder extends DelegatingSubstituteBuilder<InvokeInstruction, InvokeSubtituteBuilder> {
 
-    public InvokeSubtituteBuilder(SubtituteBuilder s) {
+    public InvokeSubtituteBuilder(SubstituteBuilder s) {
         super(s);
-        assignReceiver(getInstruction().getReceiver(), getInstruction().getMethod().getReturnType(), WrapMode.UNWRAP);
+        assignReceiver(getInstruction().getReceiver(), getInstruction().getMethod().getReturnType(), ConversionMode.TO_JAVA);
     }
 
-    public InvokeSubtituteBuilder appendArgWrapped(int index) {
-        return append(getInstruction().getArguments().get(index), getInstruction().getMethod().getParameterTypes()[index], WrapMode.WRAP);
+    public InvokeSubtituteBuilder appendArgJS(int index) {
+        return append(getInstruction().getArguments().get(index), getInstruction().getMethod().getParameterTypes()[index], ConversionMode.TO_JS);
     }
 
-    public InvokeSubtituteBuilder appendArgListWrapped() {
+    public InvokeSubtituteBuilder appendArgListJS() {
         append("(");
         final int numArgs = getInstruction().getArguments().size();
         for (int i = 0; i < numArgs; i++) {
-            appendArgWrapped(i);
+            appendArgJS(i);
             if (i + 1 < numArgs) {
                 append(", ");
             }
@@ -53,7 +49,7 @@ public class InvokeSubtituteBuilder extends DelegatingSubtituteBuilder<InvokeIns
     }
 
     public InvokeSubtituteBuilder appendInstance() {
-        return append(getInstruction().getInstance(), ValueType.object(getInstruction().getMethod().getClassName()));
+        return append(getInstruction().getInstance());
     }
 
 }

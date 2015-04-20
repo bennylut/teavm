@@ -13,17 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.teavm.jso.plugin.aproc.subtitute;
+package org.teavm.jso.plugin.aproc;
 
+import org.teavm.jso.plugin.util.DelegatingSubstituteBuilder;
+import org.teavm.jso.plugin.util.SubstituteBuilder;
 import org.teavm.model.instructions.ConstructInstruction;
 
 /**
  *
  * @author bennyl
  */
-public class ConstructSubtituteBuilder extends DelegatingSubtituteBuilder<ConstructInstruction, ConstructSubtituteBuilder> {
+public class ConstructSubtituteBuilder extends DelegatingSubstituteBuilder<ConstructInstruction, ConstructSubtituteBuilder> {
 
-    public ConstructSubtituteBuilder(SubtituteBuilder s) {
+    public ConstructSubtituteBuilder(SubstituteBuilder s) {
         super(s);
     }
 

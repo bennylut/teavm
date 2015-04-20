@@ -13,26 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.teavm.jso.plugin.aproc.subtitute;
+package org.teavm.jso.plugin.aproc;
 
-import org.teavm.model.instructions.GetFieldInstruction;
+import org.teavm.jso.plugin.util.DelegatingSubstituteBuilder;
+import org.teavm.jso.plugin.util.SubstituteBuilder;
+import org.teavm.jso.plugin.jsc.ConversionMode;
+import org.teavm.model.instructions.PutFieldInstruction;
 
 /**
  *
  * @author bennyl
  */
-public class FieldGetSubtituteBuilder extends DelegatingSubtituteBuilder<GetFieldInstruction, FieldGetSubtituteBuilder> {
+public class FieldPutSubtituteBuilder extends DelegatingSubstituteBuilder<PutFieldInstruction, FieldPutSubtituteBuilder> {
 
-    public FieldGetSubtituteBuilder(SubtituteBuilder s) {
+    public FieldPutSubtituteBuilder(SubstituteBuilder s) {
         super(s);
-        assignReceiver(getInstruction().getReceiver(), getInstruction().getFieldType(), WrapMode.UNWRAP);
     }
+
 
     public String getFieldName() {
         return getInstruction().getField().getFieldName();
     }
 
-    public FieldGetSubtituteBuilder appendInstance() {
-        return append(getInstruction().getInstance(), getInstruction().getFieldType());
+    public FieldPutSubtituteBuilder appendValueJS() {
+        return append(getInstruction().getValue(), getInstruction().getFieldType(), ConversionMode.TO_JS);
+    }
+
+    public FieldPutSubtituteBuilder appendInstance() {
+        return append(getInstruction().getInstance());
     }
 }

@@ -15,19 +15,11 @@
  */
 package org.teavm.jso.plugin.aproc;
 
-import org.teavm.jso.plugin.aproc.subtitute.ConstructSubtituteBuilder;
-import org.teavm.jso.plugin.aproc.subtitute.InvokeSubtituteBuilder;
-import java.util.List;
 import org.teavm.diagnostics.Diagnostics;
-import org.teavm.jso.plugin.aproc.subtitute.FieldGetSubtituteBuilder;
-import org.teavm.jso.plugin.aproc.subtitute.FieldPutSubtituteBuilder;
-import org.teavm.model.CallLocation;
 import org.teavm.model.ClassHolder;
 import org.teavm.model.ClassReaderSource;
 import org.teavm.model.FieldHolder;
-import org.teavm.model.Instruction;
 import org.teavm.model.MethodHolder;
-import org.teavm.model.Variable;
 
 /**
  *
@@ -57,15 +49,6 @@ public abstract class AbstractAnnotationProcessor implements AnnotationProcessor
 
     @Override
     public void substituteMethodInvocation(MethodHolder mtd, InvokeSubtituteBuilder s) {
-    }
-
-
-    @Override
-    public void wrap(ClassHolder cls, Variable source, Variable target, List<Instruction> wrappingInstructions) {
-    }
-
-    @Override
-    public void unwrap(ClassHolder cls, CallLocation location, Variable source, Variable target, List<Instruction> unwrappingInstructions) {
     }
 
     @Override

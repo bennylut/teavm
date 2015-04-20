@@ -13,8 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.teavm.jso.plugin.aproc.subtitute;
+package org.teavm.jso.plugin.util;
 
+import org.teavm.jso.plugin.jsc.ConversionMode;
+import org.teavm.jso.plugin.util.SubstituteBuilder;
 import org.teavm.model.Instruction;
 import org.teavm.model.ValueType;
 import org.teavm.model.Variable;
@@ -23,11 +25,11 @@ import org.teavm.model.Variable;
  *
  * @author bennyl
  */
-public class DelegatingSubtituteBuilder<I extends Instruction, T extends DelegatingSubtituteBuilder<I, T>> implements SubtituteBuilder<T> {
+public class DelegatingSubstituteBuilder<I extends Instruction, T extends DelegatingSubstituteBuilder<I, T>> implements SubstituteBuilder<T> {
 
-    private SubtituteBuilder s;
+    private SubstituteBuilder s;
 
-    public DelegatingSubtituteBuilder(SubtituteBuilder s) {
+    public DelegatingSubstituteBuilder(SubstituteBuilder s) {
         this.s = s;
     }
 
@@ -38,13 +40,13 @@ public class DelegatingSubtituteBuilder<I extends Instruction, T extends Delegat
     }
 
     @Override
-    public T append(Variable v, ValueType type, WrapMode wrapMode) {
+    public T append(Variable v, ValueType type, ConversionMode wrapMode) {
         s.append(v, type, wrapMode);
         return (T) this;
     }
 
     @Override
-    public T assignReceiver(Variable receiver, ValueType type, WrapMode wrap) {
+    public T assignReceiver(Variable receiver, ValueType type, ConversionMode wrap) {
         s.assignReceiver(receiver, type, wrap);
         return (T) this;
     }
@@ -62,19 +64,14 @@ public class DelegatingSubtituteBuilder<I extends Instruction, T extends Delegat
     }
 
     @Override
-    public T append(Variable v, ValueType type) {
-        s.append(v, type);
+    public T append(Variable v) {
+        s.append(v);
         return (T) this;
     }
 
     @Override
     public I getInstruction() {
         return (I) s.getInstruction();
-    }
-
-    @Override
-    public void substitute() {
-        s.substitute();
     }
 
     @Override

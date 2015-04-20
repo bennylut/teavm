@@ -16,19 +16,11 @@
 package org.teavm.jso.plugin.aproc;
 
 import java.util.Collection;
-import org.teavm.jso.plugin.aproc.subtitute.ConstructSubtituteBuilder;
-import org.teavm.jso.plugin.aproc.subtitute.InvokeSubtituteBuilder;
-import java.util.List;
 import org.teavm.diagnostics.Diagnostics;
-import org.teavm.jso.plugin.aproc.subtitute.FieldGetSubtituteBuilder;
-import org.teavm.jso.plugin.aproc.subtitute.FieldPutSubtituteBuilder;
-import org.teavm.model.CallLocation;
 import org.teavm.model.ClassHolder;
 import org.teavm.model.ClassReaderSource;
 import org.teavm.model.FieldHolder;
-import org.teavm.model.Instruction;
 import org.teavm.model.MethodHolder;
-import org.teavm.model.Variable;
 
 /**
  *
@@ -139,31 +131,4 @@ public interface AnnotationProcessor {
      */
     void substituteFieldGet(FieldHolder field, FieldGetSubtituteBuilder s);
 
-    /**
-     * wrap (i.e., transform to native javascript representation) a variable of
-     * a type annotated with a supported annotation
-     *
-     * @param cls the annotated class requiring the transformation
-     * @param source the source variable which holds an instance of the the
-     * annotated class
-     * @param target a target variable that should hold the result of the
-     * transformation
-     * @param wrappingInstructions list of instructions to add to the program,
-     * this instructions should actually do the transformation
-     */
-    void wrap(ClassHolder cls, Variable source, Variable target, List<Instruction> wrappingInstructions);
-
-    /**
-     * unwrap (i.e., transform a native javascript representation into managed
-     * java representation) a variable of a native javascript type into an
-     * instance of the class annotated with a supported annotation
-     *
-     * @param cls the annotated class requiring the transformation
-     * @param source the source variable which holds a native javascript value
-     * @param target a target variable that should hold the result of the
-     * transformation
-     * @param wrappingInstructions list of instructions to add to the program,
-     * this instructions should actually do the transformation
-     */
-    void unwrap(ClassHolder cls, CallLocation location, Variable source, Variable target, List<Instruction> wrappingInstructions);
 }

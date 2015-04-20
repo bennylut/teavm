@@ -13,12 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.teavm.jso.plugin.wrp;
+package org.teavm.jso.plugin.util;
+
+import java.util.HashMap;
+import java.util.Map;
+import org.teavm.model.ClassReaderSource;
 
 /**
  *
  * @author bennyl
  */
-public class UnwrapBuilder {
+public class TypeQuery {
+
+    private ClassReaderSource classSource;
+    private Map<String, Boolean> knownJavaScriptClasses = new HashMap<>();
+    private Map<String, Boolean> knownJavaScriptImplementations = new HashMap<>();
+
+    public TypeQuery(ClassReaderSource classSource) {
+        this.classSource = classSource;
+    }
     
+    private static final class ClassInfo {
+        
+    }
+    
+    private enum ClassMode {
+        NATIVE_JS, NATIVE_JS_IMPL;
+    }
+
 }

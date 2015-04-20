@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.teavm.jso.plugin.aproc.subtitute;
+package org.teavm.jso.plugin.util;
 
+import org.teavm.jso.plugin.jsc.ConversionMode;
 import org.teavm.model.Instruction;
 import org.teavm.model.ValueType;
 import org.teavm.model.Variable;
@@ -24,23 +25,22 @@ import org.teavm.model.instructions.EmptyInstruction;
  *
  * @author bennyl
  */
-public interface SubtituteBuilder<T extends SubtituteBuilder<T>> {
+public interface SubstituteBuilder<T extends SubstituteBuilder<T>> {
 
     T append(String... constant);
     
-    T append(Variable v, ValueType type, WrapMode wrapMode);
+    T append(Variable v, ValueType type, ConversionMode wrapMode);
 
-    T assignReceiver(Variable receiver, ValueType type, WrapMode wrap);
+    T assignReceiver(Variable receiver, ValueType type, ConversionMode wrap);
     
     T appendWrappped(Variable v, ValueType type);
 
     T appendUnwrapped(Variable v, ValueType type) ;
 
-    T append(Variable v, ValueType type);
+    T append(Variable v);
     
     Instruction getInstruction();
     
-    void substitute();
 
     /**
      * removes the substitute method, i.e., replacing it with an
@@ -48,8 +48,5 @@ public interface SubtituteBuilder<T extends SubtituteBuilder<T>> {
      */
     void substituteWithEmptyInstruction();
 
-    public enum WrapMode {
-        WRAP, UNWRAP, DO_NOTHING;
-    }
     
 }

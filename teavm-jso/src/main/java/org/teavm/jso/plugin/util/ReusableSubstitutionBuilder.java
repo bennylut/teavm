@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.teavm.jso.plugin.aproc.subtitute;
+package org.teavm.jso.plugin.util;
 
+import org.teavm.jso.plugin.jsc.ConversionMode;
 import com.carrotsearch.hppc.ObjectIntMap;
 import com.carrotsearch.hppc.ObjectIntOpenHashMap;
 import com.carrotsearch.hppc.cursors.ObjectIntCursor;
@@ -22,14 +23,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.teavm.diagnostics.Diagnostics;
 import org.teavm.jso.JSObject;
-import org.teavm.jso.plugin.wrp.UnwrapBuilder;
-import org.teavm.jso.plugin.wrp.WrapBuilder;
-import org.teavm.jso.plugin.wrp.WrapUnwrapDriver;
-import org.teavm.jso.plugin.wrp.WrapUnwrapService;
+import org.teavm.jso.plugin.jsc.JsConversionDriver;
 import org.teavm.model.CallLocation;
 import org.teavm.model.ClassHolderSource;
 import org.teavm.model.Instruction;
@@ -49,7 +45,7 @@ import org.teavm.model.instructions.StringConstantInstruction;
  *
  * @author bennyl
  */
-public class ReusableSubstituteBuilder<T extends SubtituteBuilder<T>> implements SubtituteBuilder<T> {
+public class ReusableSubstitutionBuilder<T extends SubstituteBuilder<T>> implements SubstituteBuilder<T> {
 
     private StringBuilder expression = new StringBuilder();
     private ObjectIntMap<VarInfo> variables = new ObjectIntOpenHashMap<>();
@@ -58,12 +54,12 @@ public class ReusableSubstituteBuilder<T extends SubtituteBuilder<T>> implements
     private List<Instruction> replacement;
     private Program program;
     private Instruction instruction;
-    private WrapUnwrapDriver wuDriver;
+    private JsConversionDriver wuDriver;
     private ClassHolderSource classSource;
     private MethodHolder processedMethod;
     private Diagnostics diagnostics;
 
-    public ReusableSubstituteBuilder(WrapUnwrapDriver wuDriver, MethodHolder processedMethod, ClassHolderSource classSource, Diagnostics diagnostics) {
+    public ReusableSubstitutionBuilder(JsConversionDriver wuDriver, MethodHolder processedMethod, ClassHolderSource classSource, Diagnostics diagnostics) {
         this.replacement = new ArrayList<>();
         this.program = processedMethod.getProgram();
         this.instruction = null;
@@ -98,7 +94,7 @@ public class ReusableSubstituteBuilder<T extends SubtituteBuilder<T>> implements
     }
 
     @Override
-    public T append(Variable v, ValueType type, WrapMode wrap) {
+    public T append(Variable v, ValueType type, ConversionMode wrap) {
         VarInfo vt = new VarInfo(v, type, wrap);
         int index = variables.getOrDefault(vt, -1);
         if (index < 0) {
@@ -112,21 +108,23 @@ public class ReusableSubstituteBuilder<T extends SubtituteBuilder<T>> implements
 
     @Override
     public T appendWrappped(Variable v, ValueType type) {
-        return append(v, type, WrapMode.WRAP);
+        return append(v, type, ConversionMode.TO_JS);
     }
 
     @Override
     public T appendUnwrapped(Variable v, ValueType type) {
-        return append(v, type, WrapMode.UNWRAP);
+        return append(v, type, ConversionMode.TO_JAVA);
     }
 
     @Override
-    public T append(Variable v, ValueType type) {
-        return append(v, type, WrapMode.DO_NOTHING);
+    public T append(Variable v) {
+        return append(v,
+                null, //If no conversion is made than the type is not important
+                ConversionMode.DO_NOTHING);
     }
 
     @Override
-    public T assignReceiver(Variable receiver, ValueType type, WrapMode wrap) {
+    public T assignReceiver(Variable receiver, ValueType type, ConversionMode wrap) {
         this.receiver = new VarInfo(receiver, type, wrap);
         return (T) this;
     }
@@ -146,19 +144,18 @@ public class ReusableSubstituteBuilder<T extends SubtituteBuilder<T>> implements
         }
     }
 
-    @Override
-    public void substitute() {
+    public void finalizeInstruction() {
         Variable result = receiver != null ? program.createVariable() : null;
         InvokeInstruction newInvoke = new InvokeInstruction();
         CallLocation callLocation = new CallLocation(processedMethod.getReference(), instruction.getLocation());
-        
+
         ValueType[] signature = new ValueType[variables.size() + 2];
         Arrays.fill(signature, ValueType.object(JSObject.class.getName()));
 
         newInvoke.setMethod(new MethodReference(Substituter.class.getName(), "substitute", signature));
         newInvoke.setType(InvocationType.SPECIAL);
         newInvoke.setReceiver(result);
-        newInvoke.getArguments().add(addStringWrap(addString(expression.toString(), instruction.getLocation()),callLocation));
+        newInvoke.getArguments().add(addStringWrap(addString(expression.toString(), instruction.getLocation()), callLocation));
         newInvoke.setLocation(instruction.getLocation());
 
         VarInfo[] arguments = new VarInfo[variables.size()];
@@ -170,13 +167,13 @@ public class ReusableSubstituteBuilder<T extends SubtituteBuilder<T>> implements
             try {
                 Variable arg;
                 switch (arguments[k].wrap) {
-                    case WRAP:
+                    case TO_JS:
                         arg = program.createVariable();
-                        wuDriver.wrap(arguments[k].var, arg, arguments[k].type, replacement);
+                        wuDriver.toJs(arguments[k].var, arg, arguments[k].type, replacement);
                         break;
-                    case UNWRAP:
+                    case TO_JAVA:
                         arg = program.createVariable();
-                        wuDriver.unwrap(arguments[k].var, arg, arguments[k].type, replacement);
+                        wuDriver.toJava(arguments[k].var, arg, arguments[k].type, replacement);
                         break;
                     case DO_NOTHING:
                         arg = arguments[k].var;
@@ -196,12 +193,12 @@ public class ReusableSubstituteBuilder<T extends SubtituteBuilder<T>> implements
             try {
                 Variable temp = program.createVariable();
                 switch (receiver.wrap) {
-                    case WRAP:
-                        wuDriver.wrap(result, temp, receiver.type, replacement);
+                    case TO_JS:
+                        wuDriver.toJs(result, temp, receiver.type, replacement);
                         result = temp;
                         break;
-                    case UNWRAP:
-                        wuDriver.unwrap(result, temp, receiver.type, replacement);
+                    case TO_JAVA:
+                        wuDriver.toJava(result, temp, receiver.type, replacement);
                         result = temp;
                         break;
                     case DO_NOTHING:
@@ -229,7 +226,7 @@ public class ReusableSubstituteBuilder<T extends SubtituteBuilder<T>> implements
     private Variable addStringWrap(Variable var, CallLocation location) {
         try {
             Variable v = program.createVariable();
-            wuDriver.wrap(var, v, ValueType.object("java.lang.String"), replacement);
+            wuDriver.toJs(var, v, ValueType.object("java.lang.String"), replacement);
             return v;
         } catch (Exception ex) {
             diagnostics.error(location, "error while attempting to wrap string constant: {{1}}", ex.getMessage());
@@ -247,9 +244,9 @@ public class ReusableSubstituteBuilder<T extends SubtituteBuilder<T>> implements
 
         Variable var;
         ValueType type;
-        WrapMode wrap;
+        ConversionMode wrap;
 
-        public VarInfo(Variable var, ValueType type, WrapMode wrap) {
+        public VarInfo(Variable var, ValueType type, ConversionMode wrap) {
             this.var = var;
             this.type = type;
             this.wrap = wrap;

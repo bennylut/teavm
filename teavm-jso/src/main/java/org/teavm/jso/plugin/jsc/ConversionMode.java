@@ -13,27 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.teavm.jso.plugin.wrp;
-
-import java.util.Collection;
-import org.teavm.codegen.SourceWriter;
-import org.teavm.model.AnnotationReader;
-import org.teavm.model.ValueType;
-import org.teavm.model.Variable;
+package org.teavm.jso.plugin.jsc;
 
 /**
  *
  * @author bennyl
  */
-public interface WrapUnwrapService {
+public enum ConversionMode {
+    TO_JS, TO_JAVA, DO_NOTHING
     
-    Collection<String> supportedAnnotations();
-    
-    Collection<ValueType> supportedTypes();
-    
-    void renderHelperJavascriptCode(SourceWriter writer);
-    
-    void unwrap(Variable toUnwrap, ValueType type, AnnotationReader typeAnnotations, UnwrapBuilder ub);
-
-    void wrap(Variable toWrap, ValueType type, AnnotationReader typeAnnotations, WrapBuilder wb);
 }

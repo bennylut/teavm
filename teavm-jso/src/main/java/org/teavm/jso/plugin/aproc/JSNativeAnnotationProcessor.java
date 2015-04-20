@@ -15,15 +15,16 @@
  */
 package org.teavm.jso.plugin.aproc;
 
-import org.teavm.jso.plugin.aproc.subtitute.ConstructSubtituteBuilder;
-import org.teavm.jso.plugin.aproc.subtitute.InvokeSubtituteBuilder;
+import org.teavm.jso.plugin.aproc.ConstructSubtituteBuilder;
+import org.teavm.jso.plugin.aproc.InvokeSubtituteBuilder;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import org.teavm.diagnostics.Diagnostics;
 import org.teavm.jso.JSNative;
-import org.teavm.jso.plugin.aproc.subtitute.FieldGetSubtituteBuilder;
-import org.teavm.jso.plugin.aproc.subtitute.FieldPutSubtituteBuilder;
+import org.teavm.jso.plugin.aproc.AbstractAnnotationProcessor;
+import org.teavm.jso.plugin.aproc.FieldGetSubtituteBuilder;
+import org.teavm.jso.plugin.aproc.FieldPutSubtituteBuilder;
 import org.teavm.model.CallLocation;
 import org.teavm.model.ClassHolder;
 import org.teavm.model.ClassReaderSource;
@@ -51,18 +52,18 @@ public class JSNativeAnnotationProcessor extends AbstractAnnotationProcessor {
         String methodName = s.getInstruction().getMethod().getName();
         if (methodName.equals("<init>")) {
             String constructorName = cls.getAnnotations().get(JSNative.class.getName()).getValue("value").getString();
-            s.append("(").appendInstance().append(" = new ", constructorName).appendArgListWrapped().append(")").substitute();
+            s.append("(").appendInstance().append(" = new ", constructorName).appendArgListJS().append(")");
         }
     }
 
     @Override
     public void substituteFieldGet(ClassHolder cls, FieldGetSubtituteBuilder s) {
-        s.appendInstance().append(".").append(s.getFieldName()).substitute();
+        s.appendInstance().append(".").append(s.getFieldName());
     }
 
     @Override
     public void substituteFieldPut(ClassHolder cls, FieldPutSubtituteBuilder s) {
-        s.appendInstance().append(".").append(s.getFieldName(), " = ").appendValueWrapped().substitute();
+        s.appendInstance().append(".").append(s.getFieldName(), " = ").appendValueJS();
     }
 
     @Override
